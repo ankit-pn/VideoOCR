@@ -41,6 +41,7 @@ func SetKey(rdb *redis.Client, key string, value interface{}) error {
 
 func traverseDir(fileChan chan<- string, root_path string, rdb *redis.Client) {
 	defer wg.Done()
+	defer close(fileChan)
 	walkErr := filepath.Walk(root_path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			fmt.Printf("Error Accessing this path %q: %v\n", path, err)
@@ -63,7 +64,6 @@ func traverseDir(fileChan chan<- string, root_path string, rdb *redis.Client) {
 		fmt.Printf("Error Traversing the root Path")
 	}
 	
-
 }
 
 
@@ -96,7 +96,6 @@ func worker(fileChan <-chan string,rdb *redis.Client,ctx context.Context,errChan
 }
 
 func indexerEngine(root_path string) {
-	ctx, cancel := context.WithCancel(context.Background())
 	rdb:=redis.NewClient(&redis.Options{
 		Addr : "localhost:6379",
 		Password: "",
@@ -107,7 +106,7 @@ func indexerEngine(root_path string) {
 	buffSize := 25
 	fileChan := make(chan string, buffSize)
 	errChan := make(chan error, buffSize)
-	for i := 0; i < 25; i++ {
+	for i := 0; i < 2; i++ {
         wg.Add(1)
         go worker(fileChan, rdb, ctx,errChan)
     }
@@ -115,11 +114,13 @@ func indexerEngine(root_path string) {
 
 	wg.Add(1)
 	go traverseDir(fileChan,root_path,rdb)
-	close(fileChan)
+	
 	wg.Wait()
 	
 	close(errChan) 
-    cancel() 
+    for err := range errChan {
+		fmt.Println("Error from worker:", err)
+	}
 
 	// go processVideo(fileChan)
 

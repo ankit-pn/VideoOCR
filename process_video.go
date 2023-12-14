@@ -1,102 +1,111 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image"
 	"image/jpeg"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/otiai10/gosseract/v2"
 	"gocv.io/x/gocv"
-    "github.com/otiai10/gosseract/v2"
-    "bytes"
-    "image"
 )
 
-func imageToBytes(img image.Image) []byte {
-    buf := new(bytes.Buffer)
-    err := jpeg.Encode(buf, img, nil)
-    if err != nil {
-        panic(err)
-    }
-    return buf.Bytes()
+func imageToBytes(img image.Image) ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := jpeg.Encode(buf, img, nil); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
-func saveFrame(frame gocv.Mat, index int,videoname string) (string,error) {
-    client := gosseract.NewClient()
-    defer client.Close()
-    client.SetLanguage("eng", "hin")
-    img, err := frame.ToImage()
-    if err != nil {
-        panic(err)
-    }
-    baseFolderPath := "content"  // Base folder path
-    subFolderName := videoname
-    subFolderPath := filepath.Join(baseFolderPath, subFolderName)
+func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
+	client := gosseract.NewClient()
+	defer client.Close()
+	client.SetLanguage("eng", "hin")
 
-    err = os.MkdirAll(subFolderPath, os.ModePerm)
-    if err != nil {
-        panic(err)
-    }
-    fileName := "frame" + strconv.Itoa(index) + ".jpg"
-    filePath := filepath.Join(subFolderPath, fileName) 
-    fmt.Println(filePath)
-    file, err := os.Create(filePath)
-    if err != nil {
-        panic(err)
-    }
-    defer file.Close()
+	img, err := frame.ToImage()
+	if err != nil {
+		return "", err
+	}
 
-    err = jpeg.Encode(file, img, nil)
+	baseFolderPath := "content"
+	subFolderName := videoname
+	subFolderPath := filepath.Join(baseFolderPath, subFolderName)
 
-      // Convert image.Image to []byte
-    imgBytes := imageToBytes(img)
+	if err := os.MkdirAll(subFolderPath, os.ModePerm); err != nil {
+		return "", err
+	}
 
-      // Set the image to the client from the []byte
-    err = client.SetImageFromBytes(imgBytes)
+	fileName := "frame" + strconv.Itoa(index) + ".jpg"
+	filePath := filepath.Join(subFolderPath, fileName)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	if err := jpeg.Encode(file, img, nil); err != nil {
+		return "", err
+	}
+
+	imgBytes, err := imageToBytes(img)
+	if err != nil {
+		return "", err
+	}
+
+	if err := client.SetImageFromBytes(imgBytes); err != nil {
+		return "", err
+	}
+
 	text, err := client.Text()
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(text)
-    return text,err
+	if err != nil {
+		return "", err
+	}
+
+	return text, nil
 }
 
 type File struct {
-	FileID string
+	FileID       string
 	ParentFolder string
-	FileData []string
+	FileData     []string
 }
 
-func processVideo(filename string) ([]string,error) {
-    video, err := gocv.VideoCaptureFile(filename)
-    if err != nil {
-        panic(err)
-    }
-    defer video.Close()
+func processVideo(filename string) ([]string, error) {
+	video, err := gocv.VideoCaptureFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer video.Close()
 
-    frame := gocv.NewMat()
-    defer frame.Close()
+	frame := gocv.NewMat()
+	defer frame.Close()
 
-    frameRate := int(video.Get(gocv.VideoCaptureFPS))
-    frameCount := 0
-    tenSecondsFrameInterval := frameRate * 10 // 10 seconds interval
-    filenameWithExtension := filepath.Base(filename)
-    trunctedFilename := filenameWithExtension[:len(filenameWithExtension)-len(filepath.Ext(filenameWithExtension))]
-    var ocrArray []string
-    for {
-        if ok := video.Read(&frame); !ok {
-            break
-        }
-        frameCount++
+	frameRate := int(video.Get(gocv.VideoCaptureFPS))
+	frameCount := 0
+	tenSecondsFrameInterval := frameRate * 10
+	trunctedFilename := filepath.Base(filename)
+	trunctedFilename = trunctedFilename[:len(trunctedFilename)-len(filepath.Ext(trunctedFilename))]
+	var ocrArray []string
 
-        // Check if the current frame is at the 10 seconds interval
-        if frameCount%tenSecondsFrameInterval == 0 {
-            text,err1 := saveFrame(frame, frameCount/tenSecondsFrameInterval,trunctedFilename)
-            if err1!=nil{
-                fmt.Printf("Error while processing that frame %q : %v",filename,err)
-            }
-            ocrArray = append(ocrArray,text)
-        }
-    }
-    return ocrArray,nil
+	for {
+		if ok := video.Read(&frame); !ok {
+			break
+		}
+		frameCount++
+
+		if frameCount%tenSecondsFrameInterval == 0 {
+			text, err := saveFrame(frame, frameCount/tenSecondsFrameInterval, trunctedFilename)
+			if err != nil {
+				fmt.Printf("Error processing frame %d of %s: %v\n", frameCount, filename, err)
+				continue
+			}
+			ocrArray = append(ocrArray, text)
+		}
+	}
+
+	return ocrArray, nil
 }
