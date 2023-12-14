@@ -102,7 +102,7 @@ func indexerEngine(root_path string) {
 	})
 	
 
-	buffSize := 500
+	buffSize := 25
 	fileChan := make(chan string, buffSize)
 	errChan := make(chan error, buffSize)
 	for i := 0; i < 25; i++ {
@@ -124,6 +124,6 @@ func indexerEngine(root_path string) {
 }
 
 func main() {
-	root_path := ""
+	root_path := "/home/kg766/mnt/kg766/WhatsappMonitorData/downloaded-media"
 	indexerEngine(root_path)
 }
