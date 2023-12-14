@@ -138,5 +138,5 @@ func main() {
 	if rootPath == "" {
 		log.Fatal("Root Path Not Set")
 	}
-	indexerEngine(root_path)
+	indexerEngine(rootPath)
 }
