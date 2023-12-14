@@ -103,10 +103,10 @@ func indexerEngine(root_path string) {
 	})
 	
 
-	buffSize := 25
+	buffSize := 200
 	fileChan := make(chan string, buffSize)
 	errChan := make(chan error, buffSize)
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 30; i++ {
         wg.Add(1)
         go worker(fileChan, rdb, ctx,errChan)
     }
