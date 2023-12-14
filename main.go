@@ -98,7 +98,7 @@ func indexerEngine(folder_path string) {
 
 func main() {
 
-	x:=processVideo("/Users/pain/Downloads/sample_1280x720_surfing_with_audio.mp4")
+	x:=processVideo("")
 	fmt.Println(x)
 	// fmt.Println(folder_path)
 
