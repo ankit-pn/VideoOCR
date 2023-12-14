@@ -65,41 +65,65 @@ func traverseDir(fileChan chan<- string, root_path string, rdb *redis.Client) {
 }
 
 
-func ocrofimages(imageChan *string){
-	// client := gosseract.NewClient()
-	// defer client.Close()
-	// client.SetLanguage("eng", "hin", "urd")
-}
 
 
 
-func workers(fileChan <-chan string,rdb *redis.Client,errChan chan<-error){
+
+func worker(fileChan <-chan string,rdb *redis.Client,ctx context.Context,errChan chan<-error){
 	defer wg.Done()
 	for path := range fileChan{
-		processVideo(path)
+		ocrValue,err := processVideo(path)
+		if err != nil {
+			errChan <- fmt.Errorf("error extracting text from %q: %w", path, err)
+			continue
+		}
+		parentFolder := filepath.Dir(path)
+		filenameWithExtension := filepath.Base(path)
+    	trunctedFilename := filenameWithExtension[:len(filenameWithExtension)-len(filepath.Ext(filenameWithExtension))]
+		file := File{
+			FileID: trunctedFilename,
+			ParentFolder: parentFolder,
+			FileData: ocrValue,
+		}
+		err = SetKey(rdb, trunctedFilename, file)
+		if err != nil {
+			fmt.Println("Failed to set value in Redis:", err)
+			return
+		}
 	}
 }
 
-func indexerEngine(folder_path string) {
+func indexerEngine(root_path string) {
+	ctx, cancel := context.WithCancel(context.Background())
 	rdb:=redis.NewClient(&redis.Options{
 		Addr : "localhost:6379",
 		Password: "",
 		DB: 1,
 	})
-	root_path := "/home/kg766/mnt/kg766/WhatsappMonitorData/downloaded-media"
+	
+
 	buffSize := 500
 	fileChan := make(chan string, buffSize)
-	
+	errChan := make(chan error, buffSize)
+	for i := 0; i < 25; i++ {
+        wg.Add(1)
+        go worker(fileChan, rdb, ctx,errChan)
+    }
+
+
 	wg.Add(1)
 	go traverseDir(fileChan,root_path,rdb)
+	close(fileChan)
+	wg.Wait()
+	
+	close(errChan) 
+    cancel() 
+
 	// go processVideo(fileChan)
 
 }
 
 func main() {
-
-	x:=processVideo("")
-	fmt.Println(x)
-	// fmt.Println(folder_path)
-
+	root_path := ""
+	indexerEngine(root_path)
 }

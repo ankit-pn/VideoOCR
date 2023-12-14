@@ -61,8 +61,13 @@ func saveFrame(frame gocv.Mat, index int,videoname string) (string,error) {
     return text,err
 }
 
+type File struct {
+	FileID string
+	ParentFolder string
+	FileData []string
+}
 
-func processVideo(filename string) []string {
+func processVideo(filename string) ([]string,error) {
     video, err := gocv.VideoCaptureFile(filename)
     if err != nil {
         panic(err)
@@ -93,5 +98,5 @@ func processVideo(filename string) []string {
             ocrArray = append(ocrArray,text)
         }
     }
-    return ocrArray
+    return ocrArray,nil
 }
