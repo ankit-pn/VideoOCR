@@ -9,6 +9,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"context"
 	"encoding/json"
+	"github.com/joho/godotenv"
+	"log"
 )
 
 
@@ -123,7 +125,18 @@ func indexerEngine(root_path string) {
 
 }
 
+
+func init() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Fatalf("Error loading .env file: %v", err)
+	}
+}
+
 func main() {
-	root_path := "/home/kg766/mnt/kg766/WhatsappMonitorData/downloaded-media"
+	rootPath := os.Getenv("ROOT_PATH")
+	if rootPath == "" {
+		log.Fatal("Root Path Not Set")
+	}
 	indexerEngine(root_path)
 }

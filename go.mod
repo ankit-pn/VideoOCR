@@ -3,6 +3,7 @@ module github.com/ankit-pn/VideoOCR
 go 1.21.3
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/otiai10/gosseract/v2 v2.4.1
 	github.com/redis/go-redis/v9 v9.3.0
 	gocv.io/x/gocv v0.35.0
