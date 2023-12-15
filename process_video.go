@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
+	// "strconv"
 
 	"github.com/otiai10/gosseract/v2"
 	"gocv.io/x/gocv"
@@ -46,17 +46,17 @@ func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
 		return "", err
 	}
 
-	fileName := "frame" + strconv.Itoa(index) + ".jpg"
-	filePath := filepath.Join(subFolderPath, fileName)
-	file, err := os.Create(filePath)
+	// fileName := "frame" + strconv.Itoa(index) + ".jpg"
+	// filePath := filepath.Join(subFolderPath, fileName)
+	// file, err := os.Create(filePath)
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
+	// defer file.Close()
 
-	if err := jpeg.Encode(file, img, nil); err != nil {
-		return "", err
-	}
+	// if err := jpeg.Encode(file, img, nil); err != nil {
+	// 	return "", err
+	// }
 
 	imgBytes, err := imageToBytes(img)
 	if err != nil {
