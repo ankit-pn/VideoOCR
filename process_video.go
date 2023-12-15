@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-
+    "log"
 	"github.com/otiai10/gosseract/v2"
 	"gocv.io/x/gocv"
 )
@@ -75,9 +75,10 @@ type File struct {
 }
 
 func processVideo(filename string) ([]string, error) {
+    log.Printf("Starting video processing for: %s\n", filename)
 	video, err := gocv.VideoCaptureFile(filename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error opening video file: %w", err)
 	}
 	defer video.Close()
 
@@ -93,13 +94,16 @@ func processVideo(filename string) ([]string, error) {
 
 	for {
 		if ok := video.Read(&frame); !ok {
+            log.Println("No more frames to read or error reading a frame")
 			break
 		}
 		frameCount++
 
 		if frameCount%tenSecondsFrameInterval == 0 {
+            log.Printf("Processing frame %d\n", frameCount)
 			text, err := saveFrame(frame, frameCount/tenSecondsFrameInterval, trunctedFilename)
 			if err != nil {
+                log.Printf("Error processing frame %d of %s: %v\n", frameCount, filename, err)
 				fmt.Printf("Error processing frame %d of %s: %v\n", frameCount, filename, err)
 				continue
 			}
