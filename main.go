@@ -39,14 +39,6 @@ func SetKey(rdb *redis.Client, key string, value interface{}) error {
 	return rdb.Set(ctx, key, string(jsonData), 0).Err()
 }
 
-func traverseDir(fileChan chan<- string, root_path string, rdb *redis.Client) {
-	defer wg.Done()
-	defer close(fileChan)
-	
-	
-}
-
-
 
 
 
@@ -86,11 +78,14 @@ func indexerEngine(root_path string) {
 	buffSize := 12
 	fileChan := make(chan string, buffSize)
 	errChan := make(chan error, buffSize)
-	for i := 0; i < 12; i++ {
+	for i := 0; i < buffSize; i++ {
         wg.Add(1)
         go worker(fileChan, rdb, ctx,errChan)
     }
-
+	go func() {
+        wg.Wait()
+        close(errChan)
+    }()
 
 	walkErr := filepath.Walk(root_path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -114,9 +109,7 @@ func indexerEngine(root_path string) {
 		fmt.Printf("Error Traversing the root Path")
 	}
 	close(fileChan)
-	wg.Wait()
 	
-	close(errChan) 
     for err := range errChan {
 		fmt.Println("Error from worker:", err)
 	}
