@@ -42,27 +42,7 @@ func SetKey(rdb *redis.Client, key string, value interface{}) error {
 func traverseDir(fileChan chan<- string, root_path string, rdb *redis.Client) {
 	defer wg.Done()
 	defer close(fileChan)
-	walkErr := filepath.Walk(root_path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			fmt.Printf("Error Accessing this path %q: %v\n", path, err)
-			return err
-		}
-		fullFileName := info.Name()
-		fileBaseName := strings.TrimSuffix(fullFileName, filepath.Ext(fullFileName))
-		val, err := GetKey(rdb, fileBaseName)
-		if err != nil {
-			fmt.Printf("error checking key %q: %v\n", fileBaseName, err)
-			return err // Handle the error as needed
-		}
-		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".mp4") && val == ""  {
-            fileChan <- path
-        }
-        return nil
-	})
-
-	if walkErr != nil {
-		fmt.Printf("Error Traversing the root Path")
-	}
+	
 	
 }
 
@@ -112,9 +92,28 @@ func indexerEngine(root_path string) {
     }
 
 
-	wg.Add(1)
-	go traverseDir(fileChan,root_path,rdb)
-	
+	walkErr := filepath.Walk(root_path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			fmt.Printf("Error Accessing this path %q: %v\n", path, err)
+			return err
+		}
+		fullFileName := info.Name()
+		fileBaseName := strings.TrimSuffix(fullFileName, filepath.Ext(fullFileName))
+		val, err := GetKey(rdb, fileBaseName)
+		if err != nil {
+			fmt.Printf("error checking key %q: %v\n", fileBaseName, err)
+			return err // Handle the error as needed
+		}
+		if !info.IsDir() && strings.HasSuffix(strings.ToLower(info.Name()), ".mp4") && val == ""  {
+            fileChan <- path
+        }
+        return nil
+	})
+
+	if walkErr != nil {
+		fmt.Printf("Error Traversing the root Path")
+	}
+	close(fileChan)
 	wg.Wait()
 	
 	close(errChan) 
