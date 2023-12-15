@@ -13,6 +13,13 @@ import (
 	"strconv"
 )
 
+
+type File struct {
+	FileID string
+	ParentFolder string
+	FileData []string
+}
+
 func imageToBytes(img image.Image) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	if err := jpeg.Encode(buf, img, nil); err != nil {
