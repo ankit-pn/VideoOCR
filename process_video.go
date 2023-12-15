@@ -3,21 +3,21 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/otiai10/gosseract/v2"
-	"gocv.io/x/gocv"
 	"image"
 	"image/jpeg"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	"github.com/otiai10/gosseract/v2"
+	"gocv.io/x/gocv"
 )
 
-
 type File struct {
-	FileID string
+	FileID       string
 	ParentFolder string
-	FileData []string
+	FileData     []string
 }
 
 func imageToBytes(img image.Image) ([]byte, error) {
@@ -76,20 +76,24 @@ func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
 }
 
 func processVideo(filePath string) ([]string, error) {
-	log.Printf("Processing video: %s\n", filePath)
-	var ocrValue []string
+	log.Printf("Starting video processing: %s\n", filePath)
+	var ocrValues []string
+
 	video, err := gocv.VideoCaptureFile(filePath)
 	if err != nil {
-		return ocrValue, fmt.Errorf("error opening video file: %w", err)
+		return ocrValues, fmt.Errorf("error opening video file: %w", err)
 	}
 	defer video.Close()
 
 	frameRate := video.Get(gocv.VideoCaptureFPS)
-
 	if frameRate <= 0 {
-		return ocrValue, fmt.Errorf("invalid frame rate detected")
+		return ocrValues, fmt.Errorf("invalid frame rate for video: %s", filePath)
 	}
+
 	tenSecondInterval := int(frameRate) * 10
+	if tenSecondInterval <= 0 {
+		return ocrValues, fmt.Errorf("invalid interval calculated for video: %s", filePath)
+	}
 
 	frame := gocv.NewMat()
 	defer frame.Close()
@@ -97,17 +101,22 @@ func processVideo(filePath string) ([]string, error) {
 	frameCount := 0
 	for {
 		if ok := video.Read(&frame); !ok {
+			log.Println("No more frames to read or error reading a frame")
 			break
 		}
 		frameCount++
 
 		if frameCount%tenSecondInterval == 0 {
-			// Perform your specific frame processing here.
 			log.Printf("Processing frame %d", frameCount)
-			// Example: append some dummy data to FileData.
-			ocrValue = append(ocrValue, fmt.Sprintf("Frame %d processed", frameCount))
+			text, err := saveFrame(frame, frameCount/tenSecondInterval, filepath.Base(filePath))
+			if err != nil {
+				log.Printf("Error processing frame %d: %v\n", frameCount, err)
+				continue
+			}
+			ocrValues = append(ocrValues, text)
 		}
 	}
 
-	return ocrValue, nil
+	return ocrValues, nil
 }
+
