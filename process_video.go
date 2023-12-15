@@ -3,14 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/otiai10/gosseract/v2"
+	"gocv.io/x/gocv"
 	"image"
 	"image/jpeg"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
-    "log"
-	"github.com/otiai10/gosseract/v2"
-	"gocv.io/x/gocv"
 )
 
 func imageToBytes(img image.Image) ([]byte, error) {
@@ -68,26 +68,24 @@ func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
 	return text, nil
 }
 
-
-func processVideo(filePath string) ([] string, error) {
+func processVideo(filePath string) ([]string, error) {
 	log.Printf("Processing video: %s\n", filePath)
-
+	var ocrValue []string
 	video, err := gocv.VideoCaptureFile(filePath)
 	if err != nil {
-		return File{}, fmt.Errorf("error opening video file: %w", err)
+		return ocrValue, fmt.Errorf("error opening video file: %w", err)
 	}
 	defer video.Close()
 
 	frameRate := video.Get(gocv.VideoCaptureFPS)
+
 	if frameRate <= 0 {
-		return File{}, fmt.Errorf("invalid frame rate detected")
+		return ocrValue, fmt.Errorf("invalid frame rate detected")
 	}
 	tenSecondInterval := int(frameRate) * 10
 
 	frame := gocv.NewMat()
 	defer frame.Close()
-
-	var ocrValue string[]
 
 	frameCount := 0
 	for {
@@ -100,10 +98,9 @@ func processVideo(filePath string) ([] string, error) {
 			// Perform your specific frame processing here.
 			log.Printf("Processing frame %d", frameCount)
 			// Example: append some dummy data to FileData.
-			ocrValue = append(fileData.FileData, fmt.Sprintf("Frame %d processed", frameCount))
+			ocrValue = append(ocrValue, fmt.Sprintf("Frame %d processed", frameCount))
 		}
 	}
 
 	return ocrValue, nil
 }
-

@@ -17,8 +17,6 @@ import (
 var ctx = context.Background()
 var wg sync.WaitGroup
 
-
-
 func GetKey(rdb *redis.Client, key string) (string, error) {
 	val, err := rdb.Get(ctx, key).Result()
 	if err == redis.Nil {

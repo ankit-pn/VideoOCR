@@ -13,4 +13,3 @@ func extractTextWithClient(client *gosseract.Client, path string) (string, error
 	}
 	return text, nil
 }
-
