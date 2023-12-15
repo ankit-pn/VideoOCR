@@ -74,42 +74,44 @@ type File struct {
 	FileData     []string
 }
 
-func processVideo(filename string) ([]string, error) {
-    log.Printf("Starting video processing for: %s\n", filename)
-	video, err := gocv.VideoCaptureFile(filename)
+func processVideo(filePath string) (File, error) {
+	log.Printf("Processing video: %s\n", filePath)
+
+	video, err := gocv.VideoCaptureFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("error opening video file: %w", err)
+		return File{}, fmt.Errorf("error opening video file: %w", err)
 	}
 	defer video.Close()
+
+	frameRate := video.Get(gocv.VideoCaptureFPS)
+	if frameRate <= 0 {
+		return File{}, fmt.Errorf("invalid frame rate detected")
+	}
+	tenSecondInterval := int(frameRate) * 10
 
 	frame := gocv.NewMat()
 	defer frame.Close()
 
-	frameRate := int(video.Get(gocv.VideoCaptureFPS))
-	frameCount := 0
-	tenSecondsFrameInterval := frameRate * 10
-	trunctedFilename := filepath.Base(filename)
-	trunctedFilename = trunctedFilename[:len(trunctedFilename)-len(filepath.Ext(trunctedFilename))]
-	var ocrArray []string
+	fileData := File{
+		FileID:   filepath.Base(filePath),
+		FileData: []string{},
+	}
 
+	frameCount := 0
 	for {
 		if ok := video.Read(&frame); !ok {
-            log.Println("No more frames to read or error reading a frame")
 			break
 		}
 		frameCount++
 
-		if frameCount%tenSecondsFrameInterval == 0 {
-            log.Printf("Processing frame %d\n", frameCount)
-			text, err := saveFrame(frame, frameCount/tenSecondsFrameInterval, trunctedFilename)
-			if err != nil {
-                log.Printf("Error processing frame %d of %s: %v\n", frameCount, filename, err)
-				fmt.Printf("Error processing frame %d of %s: %v\n", frameCount, filename, err)
-				continue
-			}
-			ocrArray = append(ocrArray, text)
+		if frameCount%tenSecondInterval == 0 {
+			// Perform your specific frame processing here.
+			log.Printf("Processing frame %d", frameCount)
+			// Example: append some dummy data to FileData.
+			fileData.FileData = append(fileData.FileData, fmt.Sprintf("Frame %d processed", frameCount))
 		}
 	}
 
-	return ocrArray, nil
+	return fileData, nil
 }
+
