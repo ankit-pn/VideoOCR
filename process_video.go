@@ -68,11 +68,6 @@ func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
 	return text, nil
 }
 
-type File struct {
-	FileID       string
-	ParentFolder string
-	FileData     []string
-}
 
 func processVideo(filePath string) (File, error) {
 	log.Printf("Processing video: %s\n", filePath)
@@ -92,10 +87,7 @@ func processVideo(filePath string) (File, error) {
 	frame := gocv.NewMat()
 	defer frame.Close()
 
-	fileData := File{
-		FileID:   filepath.Base(filePath),
-		FileData: []string{},
-	}
+	var ocrValue string[]
 
 	frameCount := 0
 	for {
@@ -108,10 +100,10 @@ func processVideo(filePath string) (File, error) {
 			// Perform your specific frame processing here.
 			log.Printf("Processing frame %d", frameCount)
 			// Example: append some dummy data to FileData.
-			fileData.FileData = append(fileData.FileData, fmt.Sprintf("Frame %d processed", frameCount))
+			ocrValue = append(fileData.FileData, fmt.Sprintf("Frame %d processed", frameCount))
 		}
 	}
 
-	return fileData, nil
+	return ocrValue, nil
 }
 
