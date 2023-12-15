@@ -69,7 +69,7 @@ func saveFrame(frame gocv.Mat, index int, videoname string) (string, error) {
 }
 
 
-func processVideo(filePath string) (File, error) {
+func processVideo(filePath string) ([] string, error) {
 	log.Printf("Processing video: %s\n", filePath)
 
 	video, err := gocv.VideoCaptureFile(filePath)
